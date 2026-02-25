@@ -1,0 +1,41 @@
+# Kalpa data directories
+**/.kalpa/
+.kalpa/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment
+.env
+.venv
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Project planning
+prompt.md
+plan.md
+PLAN.md
+ARCHITECTURE.md
+*.plan.md
