@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional, Set
 
@@ -71,7 +71,7 @@ class KalpaEventHandler(FileSystemEventHandler):
 
         rel_path = self._make_rel_path(path)
         rel_old_path = self._make_rel_path(old_path) if old_path else None
-        timestamp = datetime.utcnow().timestamp()
+        timestamp = datetime.now(timezone.utc).timestamp()
 
         file_hash = None
         delta_id = None
@@ -235,7 +235,7 @@ class FolderWatcher:
         manifest = self.snapshot_engine.build_file_manifest(self.path)
         snapshot_id = self.db.insert_snapshot(
             folder_id=self.folder_id or "",
-            timestamp=datetime.utcnow().timestamp(),
+            timestamp=datetime.now(timezone.utc).timestamp(),
             manifest=manifest,
             label=label,
         )

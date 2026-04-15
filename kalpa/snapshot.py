@@ -210,14 +210,15 @@ class SnapshotEngine:
 
     def build_file_manifest(self, folder_path: Path) -> Dict[str, str]:
         manifest: Dict[str, str] = {}
+        kalpa_dir = (folder_path / ".kalpa").resolve()
         for root, _dirs, files in os.walk(folder_path):
-            kalpa_dir = Path(root) / ".kalpa"
+            root_path = Path(root).resolve()
+            if root_path == kalpa_dir or kalpa_dir in root_path.parents:
+                continue
             for file in files:
-                file_path = Path(root) / file
-                if file_path == kalpa_dir or kalpa_dir in file_path.parents:
-                    continue
+                file_path = root_path / file
                 try:
-                    rel_path = str(file_path.relative_to(folder_path))
+                    rel_path = str(file_path.relative_to(folder_path.resolve()))
                 except ValueError:
                     continue
                 file_hash = self.compute_file_hash(str(file_path))

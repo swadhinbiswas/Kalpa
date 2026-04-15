@@ -6,7 +6,7 @@ import threading
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator, List, Optional
 
@@ -133,7 +133,7 @@ class Database:
 
     def register_folder(self, path: str) -> str:
         folder_id = str(uuid.uuid4())
-        now = datetime.utcnow().timestamp()
+        now = datetime.now(timezone.utc).timestamp()
         with self.transaction() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO folders (id, path, started_at, active) VALUES (?, ?, ?, 1)",

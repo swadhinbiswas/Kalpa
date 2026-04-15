@@ -5,7 +5,7 @@ import shutil
 import signal
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -586,7 +586,7 @@ def snapshot(
     manifest = engine.build_file_manifest(path)
     snapshot_id = db.insert_snapshot(
         folder_id=folder_rec["id"],
-        timestamp=datetime.utcnow().timestamp(),
+        timestamp=datetime.now(timezone.utc).timestamp(),
         manifest=manifest,
         label=label,
     )
