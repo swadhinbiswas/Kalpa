@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import difflib
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from rich.console import Console
 from rich.syntax import Syntax
-from rich.table import Table
 from rich.text import Text
 
 from kalpa.timeline import Timeline
@@ -83,10 +81,10 @@ class DiffEngine:
                     diff_text,
                     "diff",
                     theme="monokai",
-                    line_numbers=True,
+                    line_numbers=False,
                 )
                 self.console.print(syntax)
-            except Exception:
+            except (ValueError, TypeError):
                 for line in diff_lines:
                     style = "green" if line.startswith("+") else (
                         "red" if line.startswith("-") else "dim"

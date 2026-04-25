@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 
 from rich.console import Console
 from rich.live import Live
@@ -59,9 +59,7 @@ class ReplayEngine:
         current_frame = ReplayFrame(timestamp=events[0].timestamp)
 
         for event in events:
-            time_diff_ms = (
-                abs(event.timestamp - current_frame.timestamp) * 1000
-            )
+            time_diff_ms = abs(event.timestamp - current_frame.timestamp) * 1000
             if time_diff_ms <= self.frame_window_ms:
                 current_frame.events.append(event)
             else:
@@ -78,7 +76,7 @@ class ReplayEngine:
 
     def _render_frame(self, frame: ReplayFrame, frame_index: int, total: int) -> Panel:
         dt = datetime.fromtimestamp(frame.timestamp)
-        time_str = dt.strftime("%H:%M:%S.%f")[:12]
+        time_str = dt.strftime("%H:%M:%S")
 
         table = Table.grid(padding=(0, 1))
         table.add_column()

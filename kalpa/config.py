@@ -1,12 +1,22 @@
 from __future__ import annotations
 
 import json
-import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 KALPA_DIR_NAME = ".kalpa"
+
+KNOWN_CONFIG_KEYS = {
+    "snapshot_interval_events",
+    "snapshot_interval_minutes",
+    "compression_algorithm",
+    "compression_level",
+    "replay_default_speed",
+    "replay_frame_window_ms",
+    "undo_max_steps",
+    "max_event_batch_size",
+}
 
 
 @dataclass
@@ -29,7 +39,14 @@ class KalpaConfig:
         config_file = path / KALPA_DIR_NAME / "config.json"
         if config_file.exists():
             data = json.loads(config_file.read_text())
-            return cls(**{k: v for k, v in data.items() if hasattr(cls, k)})
+            unknown_keys = set(data.keys()) - KNOWN_CONFIG_KEYS
+            if unknown_keys:
+                import warnings
+                warnings.warn(
+                    f"Unknown config keys in {config_file}: {', '.join(sorted(unknown_keys))}"
+                )
+            filtered = {k: v for k, v in data.items() if k in KNOWN_CONFIG_KEYS}
+            return cls(**filtered)
         return cls.default()
 
     def save(self, path: Path) -> None:

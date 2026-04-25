@@ -1,23 +1,19 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from rich import box
 
-from kalpa.storage import Database, EventRecord
+from kalpa.storage import EventRecord
 
 try:
     from textual.app import App, ComposeResult
-    from textual.containers import Container, Vertical
-    from textual.reactive import reactive
-    from textual.widgets import Header, Footer, ListView, ListItem, Label, Static
-    from textual.screen import Screen
+    from textual.containers import Container
+    from textual.widgets import Header, Footer, ListView, ListItem, Label
 
     TEXTUAL_AVAILABLE = True
 except ImportError:
@@ -76,10 +72,17 @@ def render_status_panel(status: dict) -> Panel:
     grid.add_column()
 
     grid.add_row("Watching:", status.get("path", "N/A"))
-    grid.add_row("Events:", str(status.get("event_count", 0)))
+
+    pid = status.get("pid")
+    if pid:
+        grid.add_row("PID:", str(pid))
+
+    grid.add_row("Events:", f"{status.get('event_count', 0):,}")
     grid.add_row(
         "Storage:",
-        f"{status.get('storage_bytes', 0) / 1024:.1f} KB (compressed)",
+        f"{status.get('storage_bytes', 0) / 1024:.1f} KB"
+        if status.get("storage_bytes")
+        else "0 KB",
     )
     grid.add_row(
         "Since:",
@@ -111,33 +114,6 @@ if TEXTUAL_AVAILABLE:
         def compose(self) -> ComposeResult:
             text = format_event_row(self.event)
             yield Label(text)
-
-    class TimelineScreen(Screen):
-        def __init__(self, events: List[EventRecord], title: str = "Timeline"):
-            super().__init__()
-            self._events = events
-            self._title = title
-
-        def compose(self) -> ComposeResult:
-            yield Header()
-            yield Container(
-                ListView(
-                    *[TimelineItem(ev) for ev in self._events],
-                    id="timeline-list",
-                ),
-            )
-            yield Footer()
-
-        def on_list_view_selected(self, event) -> None:
-            item = event.item
-            if isinstance(item, TimelineItem):
-                ev = item.event
-                detail = (
-                    f"[bold]{ev.event_type}[/bold] {ev.path}\n"
-                    f"Time: {datetime.fromtimestamp(ev.timestamp).strftime('%Y-%m-%d %H:%M:%S')}\n"
-                    f"Hash: {ev.file_hash or 'N/A'}"
-                )
-                self.notify(detail, title="Event Detail", timeout=5)
 
     class TimelineApp(App):
         def __init__(self, events: List[EventRecord]):

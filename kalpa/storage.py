@@ -5,12 +5,10 @@ import sqlite3
 import threading
 import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator, List, Optional
-
-from kalpa.config import KALPA_DIR_NAME
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS folders (
@@ -101,17 +99,22 @@ class SnapshotRecord:
 class Database:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
-        self._local = threading.local()
+        self._connections: dict[int, sqlite3.Connection] = {}
+        self._lock = threading.Lock()
         self._init_db()
 
     def _get_conn(self) -> sqlite3.Connection:
-        if not hasattr(self._local, "conn") or self._local.conn is None:
-            self._local.conn = sqlite3.connect(str(self.db_path))
-            self._local.conn.row_factory = sqlite3.Row
-            self._local.conn.execute("PRAGMA journal_mode=WAL")
-            self._local.conn.execute("PRAGMA synchronous=NORMAL")
-            self._local.conn.execute("PRAGMA foreign_keys=ON")
-        return self._local.conn
+        thread_id = threading.get_ident()
+        with self._lock:
+            conn = self._connections.get(thread_id)
+            if conn is None:
+                conn = sqlite3.connect(str(self.db_path), uri=True)
+                conn.row_factory = sqlite3.Row
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA synchronous=NORMAL")
+                conn.execute("PRAGMA foreign_keys=ON")
+                self._connections[thread_id] = conn
+            return conn
 
     def _init_db(self) -> None:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -125,7 +128,7 @@ class Database:
         try:
             yield conn
             conn.commit()
-        except Exception:
+        except BaseException:
             conn.rollback()
             raise
 
@@ -257,12 +260,10 @@ class Database:
             clauses.append("event_type = ?")
             params.append(event_type)
         if path_pattern is not None:
-            clauses.append("path LIKE ?")
+            clauses.append("path = ?")
             params.append(path_pattern)
 
-        query = (
-            f"SELECT * FROM events WHERE {' AND '.join(clauses)} ORDER BY timestamp ASC LIMIT ? OFFSET ?"
-        )
+        query = f"SELECT * FROM events WHERE {' AND '.join(clauses)} ORDER BY timestamp ASC LIMIT ? OFFSET ?"
         rows = conn.execute(query, params + [limit, offset]).fetchall()
         return [EventRecord(**dict(r)) for r in rows]
 
@@ -280,7 +281,7 @@ class Database:
         conn = self._get_conn()
         rows = conn.execute(
             """SELECT * FROM events
-               WHERE folder_id = ? AND event_type IN ('delete', 'modify')
+               WHERE folder_id = ? AND event_type IN ('delete', 'modify', 'rename')
                ORDER BY id DESC LIMIT ?""",
             (folder_id, steps),
         ).fetchall()
@@ -341,8 +342,7 @@ class Database:
                 (folder_id,),
             ).fetchone()
         if row:
-            rec = SnapshotRecord(**dict(row))
-            return rec
+            return SnapshotRecord(**dict(row))
         return None
 
     def get_snapshots(
@@ -374,9 +374,7 @@ class Database:
         last_event = self.get_last_event(folder_id)
         last_event_str = ""
         if last_event:
-            last_event_str = (
-                f"{last_event.event_type} {last_event.path}"
-            )
+            last_event_str = f"{last_event.event_type} {last_event.path}"
 
         return {
             "event_count": event_count,
@@ -386,9 +384,10 @@ class Database:
         }
 
     def close(self) -> None:
-        if hasattr(self._local, "conn") and self._local.conn:
-            self._local.conn.close()
-            self._local.conn = None
+        with self._lock:
+            for conn in self._connections.values():
+                conn.close()
+            self._connections.clear()
 
     def vacuum(self) -> None:
         conn = self._get_conn()
