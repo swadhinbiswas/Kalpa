@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import multiprocessing
 import os
 import re
 import shutil
 import signal
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -228,7 +228,11 @@ def _remove_pid_file(kalpa_dir: Path) -> None:
 def _run_watcher_in_child(path_str: str) -> None:
     path = Path(path_str)
     config = KalpaConfig.load(path)
-    watcher = FolderWatcher(path=path, config=config)
+    db = _get_db_for_path(path)
+    folder_rec = db.get_folder_by_path(str(path))
+    watcher = FolderWatcher(path=path, config=config, db=db)
+    if folder_rec:
+        watcher.folder_id = folder_rec["id"]
     watcher.start()
     _run_watcher_forever(watcher)
 
@@ -278,11 +282,22 @@ def watch(
     config = KalpaConfig.default()
     config.save(path)
 
-    watcher = FolderWatcher(path=path, config=config)
-    folder_id = watcher.start()
-    watcher.take_snapshot(label="started watching")
+    db = _get_db_for_path(path)
+    existing = db.get_folder_by_path(str(path))
+    if existing:
+        folder_id = existing["id"]
+    else:
+        folder_id = db.register_folder(str(path))
 
-    ACTIVE_WATCHERS[str(path)] = watcher
+    from kalpa.snapshot import SnapshotEngine
+    engine = SnapshotEngine()
+    manifest = engine.build_file_manifest(path)
+    db.insert_snapshot(
+        folder_id=folder_id,
+        timestamp=datetime.now(timezone.utc).timestamp(),
+        manifest=manifest,
+        label="started watching",
+    )
 
     console.print(
         f"[bold green]✓[/bold green] Watching [bold]{path}[/bold] — timeline started.\n"
@@ -291,17 +306,22 @@ def watch(
     )
 
     if background:
-        watcher.stop()
-        _write_pid_file(kalpa_dir)
-        proc = multiprocessing.Process(
-            target=_run_watcher_in_child, args=(str(path),), daemon=False
+        proc = subprocess.Popen(
+            [sys.executable, "-m", "kalpa", "daemon", str(path)],
+            start_new_session=True,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
-        proc.start()
         console.print(
             f"[dim]Background watcher PID: {proc.pid}[/dim]\n"
             f"[dim]Use 'kalpa stop' to stop.[/dim]"
         )
     else:
+        watcher = FolderWatcher(path=path, config=config, db=db)
+        watcher.folder_id = folder_id
+        watcher.start()
+        ACTIVE_WATCHERS[str(path)] = watcher
         _run_watcher_forever(watcher)
 
 
@@ -706,6 +726,24 @@ def snapshot(
         console.print(f"  Label: {label}")
 
     db.close()
+
+
+@app.command(hidden=True)
+def daemon(
+    folder: str = typer.Argument(..., help="Watched folder path"),
+):
+    """Internal: run watcher in foreground (used by background mode)."""
+    path = Path(folder).resolve()
+    kalpa_dir = get_kalpa_dir(path)
+    _write_pid_file(kalpa_dir)
+    config = KalpaConfig.load(path)
+    db = _get_db_for_path(path)
+    folder_rec = db.get_folder_by_path(str(path))
+    watcher = FolderWatcher(path=path, config=config, db=db)
+    if folder_rec:
+        watcher.folder_id = folder_rec["id"]
+    watcher.start()
+    _run_watcher_forever(watcher)
 
 
 if __name__ == "__main__":
