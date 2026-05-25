@@ -1,34 +1,55 @@
-# kalpa
+<p align="center">
+  <img src="docs/kalpa-logo.svg" width="600" alt="kalpa">
+</p>
 
-> Time moves in cycles. So does your filesystem.
+<p align="center">
+  <a href="https://github.com/swadhinbiswas/kalpa/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/swadhinbiswas/kalpa/ci.yml?branch=main&logo=github" alt="CI"></a>
+  <a href="https://pypi.org/project/kalpa/"><img src="https://img.shields.io/pypi/v/kalpa?logo=pypi" alt="PyPI"></a>
+  <a href="https://pypi.org/project/kalpa/"><img src="https://img.shields.io/pypi/pyversions/kalpa?logo=python" alt="Python"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/pypi/l/kalpa" alt="License"></a>
+  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/code%20style-ruff-000000" alt="Ruff"></a>
+  <a href="https://github.com/swadhinbiswas/kalpa"><img src="https://img.shields.io/github/stars/swadhinbiswas/kalpa?style=flat&logo=github" alt="Stars"></a>
+</p>
 
-[![CI](https://github.com/swadhinbiswas/kalpa/actions/workflows/ci.yml/badge.svg)](https://github.com/swadhinbiswas/kalpa/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/kalpa)](https://pypi.org/project/kalpa/)
-[![Python](https://img.shields.io/pypi/pyversions/kalpa)](https://pypi.org/project/kalpa/)
-[![License](https://img.shields.io/pypi/l/kalpa)](LICENSE)
-[![Code style](https://img.shields.io/badge/code%20style-ruff-000000)](https://github.com/astral-sh/ruff)
+<p align="center"><b>Local-first filesystem timeline engine.</b><br>
+Watch any folder. Undo anything. Replay your project's history.<br>
+Fork old states into parallel workspaces.</p>
 
-Kalpa is a **local-first filesystem timeline engine** for developers, writers, and
-researchers. Watch any folder. Undo anything. Replay your project's history.
-Fork old states into parallel workspaces.
+<p align="center"><i>No Git. No cloud. No config. Just time.</i></p>
 
-No Git. No cloud. No config. Just time.
+<br>
+
+<p align="center">
+  <img src="docs/kalpa-demo.svg" width="720" alt="Kalpa Demo">
+</p>
+
+<br>
 
 ## Viral Demo (60 seconds)
 
 ```bash
 # Start watching
-kalpa watch ./my-project
+kalpa watch ./my-project --background
 
-# Do some work (or simulate it)
-echo "auth logic" >> src/auth.py
+# Do some work
+echo "def authenticate(): pass" > src/auth.py
+echo "server started" >> src/main.py
+
+# OH NO — accidentally deleted src/
 rm -rf src/
 
 # The "holy shit" moment — restore instantly
 kalpa undo
-# → Restored: src/ (1 file) from 4 seconds ago.
+# → Restored: 1 file (0.0 KB)
+# → src/auth.py
 
-# The "wow" moment — watch it grow
+# The "wow" moment — watch history unfold
+kalpa timeline
+# → +19:15:11  create  src/auth.py · 30B
+# → ~19:15:12  modify  src/main.py · 45B
+# → -19:15:14  delete  src/auth.py
+
+# Watch it grow like a timelapse
 kalpa replay --speed 3x
 
 # The mind-bending moment — fork the past
@@ -43,7 +64,7 @@ ls
 pip install kalpa
 ```
 
-Or with TUI support:
+With TUI support:
 
 ```bash
 pip install "kalpa[ui]"
@@ -52,11 +73,8 @@ pip install "kalpa[ui]"
 ## Quickstart
 
 ```bash
-# Start watching a folder (foreground)
+# Start watching a folder
 kalpa watch ./my-project
-
-# Or run in background
-kalpa watch ./my-project --background
 
 # View the timeline
 kalpa timeline
@@ -78,6 +96,9 @@ kalpa status
 
 # Create a manual snapshot
 kalpa snapshot --label "checkpoint"
+
+# Stop watching
+kalpa stop ./my-project
 ```
 
 ## Commands
@@ -86,12 +107,12 @@ kalpa snapshot --label "checkpoint"
 |---|---|
 | `kalpa watch <folder>` | Start tracking filesystem changes |
 | `kalpa stop <folder>` | Stop watching a folder |
+| `kalpa status` | Show watch state and stats |
 | `kalpa timeline` | View event history |
 | `kalpa replay` | Animated history playback |
 | `kalpa undo` | Restore last destructive change |
 | `kalpa fork --from <time>` | Create parallel folder at past state |
 | `kalpa diff <timeA> <timeB>` | Cross-time folder diff |
-| `kalpa status` | Show watch state and stats |
 | `kalpa snapshot` | Take manual full snapshot |
 
 ## Time Expressions
@@ -108,23 +129,23 @@ All time arguments support natural language:
 
 ## Why Kalpa?
 
-Because `rm -rf` shouldn't be permanent. Because watching a project grow from
-nothing is magical. Because sometimes you need to go back — not to a commit,
-but to a moment.
+Because `rm -rf` shouldn't be permanent. Because watching a project grow
+from nothing is magical. Because sometimes you need to go back — not to a
+commit, but to a moment.
 
 ## Architecture
 
 ```
 kalpa/
-├── cli/              # typer-based CLI (9 commands)
-├── watcher/          # watchdog file monitoring
-├── snapshot_engine/  # incremental delta snapshots (zstd)
-├── storage/          # SQLite + zstd compression
-├── replay_engine/    # timeline reconstruction
-├── fork_engine/      # folder materialization
-├── diff_engine/      # cross-time comparison
-├── timeline/         # event query layer
-└── ui/               # Textual TUI + rich output
+├── cli/              typer-based CLI (9 commands)
+├── watcher/          watchdog file monitoring
+├── snapshot_engine/  incremental delta snapshots (zstd)
+├── storage/          SQLite + zstd compression
+├── replay_engine/    timeline reconstruction
+├── fork_engine/      folder materialization
+├── diff_engine/      cross-time comparison
+├── timeline/         event query layer
+└── ui/               Textual TUI + rich output
 ```
 
 ## Development
