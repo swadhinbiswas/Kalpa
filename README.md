@@ -8,14 +8,9 @@
   <a href="https://pypi.org/project/kalpa/"><img src="https://img.shields.io/pypi/pyversions/kalpa?logo=python" alt="Python"></a>
   <a href="LICENSE"><img src="https://img.shields.io/pypi/l/kalpa" alt="License"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/code%20style-ruff-000000" alt="Ruff"></a>
-  <a href="https://github.com/swadhinbiswas/kalpa"><img src="https://img.shields.io/github/stars/swadhinbiswas/kalpa?style=flat&logo=github" alt="Stars"></a>
 </p>
 
-<p align="center"><b>Local-first filesystem timeline engine.</b><br>
-Watch any folder. Undo anything. Replay your project's history.<br>
-Fork old states into parallel workspaces.</p>
-
-<p align="center"><i>No Git. No cloud. No config. Just time.</i></p>
+<p align="center">Watch any folder, track every change, rewind or fork the past.</p>
 
 <br>
 
@@ -25,34 +20,48 @@ Fork old states into parallel workspaces.</p>
 
 <br>
 
-## Viral Demo (60 seconds)
+## What is this?
+
+Kalpa watches a folder and records everything that happens — file creates,
+edits, renames, deletes. Later you can:
+
+- **Undo** accidental `rm -rf` by restoring files from seconds ago
+- **Replay** change history like a timelapse video
+- **Fork** the folder as it was at any point in time
+- **Diff** the folder between two moments
+- **Snapshot** checkpoints you can name
+
+Everything stays local in a compressed SQLite database inside `.kalpa/`.
+No Git repo, no cloud, no setup.
+
+## Quick demo
 
 ```bash
-# Start watching
+# Watch a project
 kalpa watch ./my-project --background
 
-# Do some work
+# Make some changes
 echo "def authenticate(): pass" > src/auth.py
 echo "server started" >> src/main.py
 
-# OH NO — accidentally deleted src/
+# Accidentally delete everything
 rm -rf src/
 
-# The "holy shit" moment — restore instantly
+# Restore it
 kalpa undo
 # → Restored: 1 file (0.0 KB)
 # → src/auth.py
 
-# The "wow" moment — watch history unfold
+# See what happened
 kalpa timeline
 # → +19:15:11  create  src/auth.py · 30B
 # → ~19:15:12  modify  src/main.py · 45B
 # → -19:15:14  delete  src/auth.py
 
-# Watch it grow like a timelapse
+# Watch the project grow
 kalpa replay --speed 3x
 
-# The mind-bending moment — fork the past
+# Fork the past
 kalpa fork --from "1 hour ago"
 ls
 # → my-project/    my-project_fork_1023/
@@ -70,31 +79,31 @@ With TUI support:
 pip install "kalpa[ui]"
 ```
 
-## Quickstart
+## Usage
 
 ```bash
-# Start watching a folder
+# Start watching
 kalpa watch ./my-project
 
-# View the timeline
+# View timeline
 kalpa timeline
 
-# Undo the last destructive change
+# Restore last destructive change
 kalpa undo
 
-# Watch your project grow like a timelapse
+# Timelapse playback
 kalpa replay --speed 3x
 
-# Fork the folder as it was 2 hours ago
+# Fork at a past state
 kalpa fork --from "2 hours ago"
 
-# Diff between two points in time
+# Diff two points in time
 kalpa diff "2 hours ago" "now"
 
-# Check watch status
+# Show status
 kalpa status
 
-# Create a manual snapshot
+# Manual snapshot
 kalpa snapshot --label "checkpoint"
 
 # Stop watching
@@ -115,9 +124,9 @@ kalpa stop ./my-project
 | `kalpa diff <timeA> <timeB>` | Cross-time folder diff |
 | `kalpa snapshot` | Take manual full snapshot |
 
-## Time Expressions
+## Time expressions
 
-All time arguments support natural language:
+All time arguments accept natural language:
 
 | Expression | Example |
 |---|---|
@@ -126,12 +135,6 @@ All time arguments support natural language:
 | Named | `"now"`, `"today"`, `"yesterday"` |
 | With clock | `"yesterday 6pm"`, `"today 9am"` |
 | Absolute | `"2025-01-14 08:00:00"`, `"2025-01-14"` |
-
-## Why Kalpa?
-
-Because `rm -rf` shouldn't be permanent. Because watching a project grow
-from nothing is magical. Because sometimes you need to go back — not to a
-commit, but to a moment.
 
 ## Architecture
 
