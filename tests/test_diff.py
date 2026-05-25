@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
-
 from kalpa.diff import DiffEngine
 from kalpa.snapshot import SnapshotEngine
 from kalpa.storage import Database, DeltaRecord, EventRecord
@@ -41,7 +37,10 @@ class TestDiffEngine:
         content = b"new file content"
         delta_bytes, algorithm = engine.create_delta(b"", content)
         delta_id = db.insert_delta(
-            DeltaRecord(from_hash=None, to_hash="hash_b", algorithm=algorithm, delta_bytes=delta_bytes)
+            DeltaRecord(
+                from_hash=None, to_hash="hash_b",
+                algorithm=algorithm, delta_bytes=delta_bytes,
+            )
         )
         db.insert_event(
             EventRecord(
@@ -70,7 +69,10 @@ class TestDiffEngine:
         file_hash = engine.hash_bytes(content)
         delta_bytes, algorithm = engine.create_delta(b"", content)
         delta_id = db.insert_delta(
-            DeltaRecord(from_hash=None, to_hash=file_hash, algorithm=algorithm, delta_bytes=delta_bytes)
+            DeltaRecord(
+                from_hash=None, to_hash=file_hash,
+                algorithm=algorithm, delta_bytes=delta_bytes,
+            )
         )
 
         ts_a = 1000.0

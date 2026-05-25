@@ -5,8 +5,6 @@ import os
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from kalpa.snapshot import (
     SnapshotEngine,
     apply_delta,

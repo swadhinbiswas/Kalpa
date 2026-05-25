@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
-from kalpa.storage import Database, EventRecord
+from kalpa.storage import EventRecord
 from kalpa.timeline import Timeline
 
 

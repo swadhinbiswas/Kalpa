@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from kalpa.storage import Database, DeltaRecord, EventRecord, SnapshotRecord
+from kalpa.storage import Database, DeltaRecord, EventRecord
 
 
 @pytest.fixture

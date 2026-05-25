@@ -13,7 +13,7 @@ from kalpa.storage import EventRecord
 try:
     from textual.app import App, ComposeResult
     from textual.containers import Container
-    from textual.widgets import Header, Footer, ListView, ListItem, Label
+    from textual.widgets import Footer, Header, Label, ListItem, ListView
 
     TEXTUAL_AVAILABLE = True
 except ImportError:

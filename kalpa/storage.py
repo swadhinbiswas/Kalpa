@@ -175,10 +175,15 @@ class Database:
 
     def insert_event(self, event: EventRecord) -> int:
         with self.transaction() as conn:
+            cols = (
+                "folder_id", "timestamp", "event_type", "path",
+                "old_path", "file_hash", "delta_id",
+                "size_before", "size_after",
+            )
+            placeholders = ", ".join("?" for _ in cols)
+            col_names = ", ".join(cols)
             cursor = conn.execute(
-                """INSERT INTO events
-                   (folder_id, timestamp, event_type, path, old_path, file_hash, delta_id, size_before, size_after)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                f"INSERT INTO events ({col_names}) VALUES ({placeholders})",
                 (
                     event.folder_id,
                     event.timestamp,
@@ -195,12 +200,17 @@ class Database:
 
     def insert_events_batch(self, events: List[EventRecord]) -> List[int]:
         with self.transaction() as conn:
+            cols = (
+                "folder_id", "timestamp", "event_type", "path",
+                "old_path", "file_hash", "delta_id",
+                "size_before", "size_after",
+            )
+            placeholders = ", ".join("?" for _ in cols)
+            col_names = ", ".join(cols)
             ids = []
             for event in events:
                 cursor = conn.execute(
-                    """INSERT INTO events
-                       (folder_id, timestamp, event_type, path, old_path, file_hash, delta_id, size_before, size_after)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    f"INSERT INTO events ({col_names}) VALUES ({placeholders})",
                     (
                         event.folder_id,
                         event.timestamp,
@@ -263,7 +273,8 @@ class Database:
             clauses.append("path = ?")
             params.append(path_pattern)
 
-        query = f"SELECT * FROM events WHERE {' AND '.join(clauses)} ORDER BY timestamp ASC LIMIT ? OFFSET ?"
+        where = " AND ".join(clauses)
+        query = f"SELECT * FROM events WHERE {where} ORDER BY timestamp ASC LIMIT ? OFFSET ?"
         rows = conn.execute(query, params + [limit, offset]).fetchall()
         return [EventRecord(**dict(r)) for r in rows]
 
@@ -292,7 +303,8 @@ class Database:
     def insert_delta(self, delta: DeltaRecord) -> int:
         with self.transaction() as conn:
             cursor = conn.execute(
-                "INSERT INTO deltas (from_hash, to_hash, algorithm, delta_bytes) VALUES (?, ?, ?, ?)",
+                "INSERT INTO deltas (from_hash, to_hash, algorithm, delta_bytes) "
+                "VALUES (?, ?, ?, ?)",
                 (delta.from_hash, delta.to_hash, delta.algorithm, delta.delta_bytes),
             )
             return cursor.lastrowid
@@ -329,11 +341,14 @@ class Database:
             )
             return cursor.lastrowid
 
-    def get_latest_snapshot(self, folder_id: str, before: Optional[float] = None) -> Optional[SnapshotRecord]:
+    def get_latest_snapshot(
+        self, folder_id: str, before: Optional[float] = None
+    ) -> Optional[SnapshotRecord]:
         conn = self._get_conn()
         if before is not None:
             row = conn.execute(
-                "SELECT * FROM snapshots WHERE folder_id = ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT 1",
+                "SELECT * FROM snapshots WHERE folder_id = ? AND timestamp <= ? "
+                "ORDER BY timestamp DESC LIMIT 1",
                 (folder_id, before),
             ).fetchone()
         else:

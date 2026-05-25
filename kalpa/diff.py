@@ -5,7 +5,6 @@ from typing import Dict, List
 
 from rich.console import Console
 from rich.syntax import Syntax
-from rich.text import Text
 
 from kalpa.timeline import Timeline
 
